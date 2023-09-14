@@ -2,124 +2,108 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-struct fcfs{
-  int pid;                  // processor id's
-  int at;                   // arrival time
-  int bt;                   // burst time
-  int ct;                   // completion time or finish time
-  int tat;                  // turnaround time
-  int wt;                   // waiting time
-  int rt;                   // response time
-  struct fcfs *next;
+struct process{
+	int pid;
+	int at;
+	int bt;
+	int ct;
+	int tat;
+	int wt;
+	int rt;
+	struct process *next;
 };
 
-struct fcfs *working(struct fcfs*head)              // working of fcfs
+struct process *enqueue(struct process *newnode,struct process *rear)
 {
-    struct fcfs *temp = head;
-    struct fcfs *temp1,*previous;
-    int x;
-    while(temp!=NULL)
-    {
-        temp1 = temp;
-        x = temp->bt;                   // storing burst time values in x variable
-        while(temp1!=NULL)
-        {
-            temp1->ct = temp1->ct + x;   // adding burst time values for completion time
-            temp1 = temp1->next;
-        }
-        temp = temp->next;
-    }
+	newnode->next = NULL;
     
-    temp = head;                    // bringing temp  to starting state
-    
-    while(temp!=NULL)
-    {
-        temp->tat = temp->ct - temp->at;                //  tat = ct- at
-        temp->wt = temp->tat - temp->bt;                // wt = tat - bt
-        temp = temp->next;
+    if (rear == NULL) {
+        return newnode;
+    } else {
+        rear->next = newnode;
+        return newnode;
     }
-    temp = head;                            // bringing temp  to starting state
-    while(temp!=NULL)
-    {
-        if(temp == head)
-        {
-            temp->rt = temp->at;                    // arrival time of each processor i.e. left hand start time
-            previous = temp;
-            temp = temp->next;
-        }
-        else
-        {
-            temp->rt = previous->ct;
-            previous = temp;
-            temp = temp->next;
-        }
-    }
-    return head;
+}
+
+struct process *dequeue(struct process **front)
+{
+	if(*front == NULL)
+	{
+		return NULL;
+	}
+	else
+	{
+		struct process *temp = *front;
+		*front = (*front)->next;
+		return temp;
+	}
 }
 
 int main()
 {
-    struct fcfs *head = NULL;
-    struct fcfs *temp;
-    struct fcfs * temp1;
-    int p,a,b;
-    int ids;
-    printf("Enter the number of processors : ");
-    scanf("%d",&p);
-    for(int i=0;i<p;i++)
-    {
-        struct fcfs *newnode = (struct fcfs*)malloc(sizeof(struct fcfs));   //Dynamic memory allocation
-        printf("Enter pids : \n");
-        scanf("%d",&ids);
-        newnode->pid = ids;
-        printf("enter arrival time and burst time values of %d  : \n",newnode->pid);
-        scanf("%d %d",&a,&b);
-        newnode->at = a;
-        newnode->bt = b;
-        // Let s intialize ct,tat,wt,rt as 0 to add or subtract arrival and burst times
-        newnode->ct = 0;
-        newnode->tat = 0;
-        newnode->rt = 0;
-        newnode->wt = 0;
+    int n;
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+    
+    struct process* front = NULL;
+    struct process* rear = NULL;
+    
+     for (int i = 0; i < n; i++) {
+        struct process* newnode = (struct process*)malloc(sizeof(struct process));
+        printf("Enter details for Process %d:\n", i + 1);
+        printf("Process ID: ");
+        scanf("%d", &newnode->pid);
+        printf("Arrival Time: ");
+        scanf("%d", &newnode->at);
+        printf("Burst Time: ");
+        scanf("%d", &newnode->bt);
         
-        if(head == NULL)
+        rear = enqueue( newnode,rear);   
+        if (front == NULL) 
         {
-            head = newnode;
-            temp = head;
+            front = rear;
         }
-        else
+        }
+        
+        int curr_time = 0;
+        struct process *node = (struct process*)malloc(n*sizeof(struct process));
+        for(int i=0;i<n;i++)
         {
-            temp->next = newnode;
-            temp = newnode;
+        	struct process *newnode = dequeue(&front);  // dequeueing first element and store in process
+        	if(newnode->at > curr_time)
+        	{
+        		curr_time = newnode->at;
+        	}
+        	
+        	newnode->ct = curr_time + newnode->bt;
+        	newnode->tat = newnode->ct - newnode->at;
+        	newnode->wt = newnode->tat - newnode->bt;
+        	newnode->rt = newnode->wt; 
+        	curr_time = newnode->ct;
+        	node[i] = *newnode;
+        	free(newnode);
         }
-    }
+        
+        float avg_wt = 0;
+        float avg_tat = 0;
+        for(int i=0;i<n;i++)
+        {
+        	avg_wt = avg_wt + node[i].wt;
+        	avg_tat = avg_tat + node[i].tat;
+        }
+        avg_wt = avg_wt/n;
+        avg_tat = avg_tat/n;
+        printf("Pid\tAT\tBT\tCT\tTAT\tWT\tRT\n");
+        for(int i=0;i<n;i++)
+        {
+        	printf("%d\t%d\t%d\t%d\t%d\t%d\t %d\n",node[i].pid,node[i].at,node[i].bt,node[i].ct,node[i].tat,node[i].wt,node[i].rt);
+        }
+        
+         printf("Avg waiting time: %.2f\n", avg_wt);
+    	printf("Avg turnaround time: %.2f\n", avg_tat);
+    	 free(node);   
     
-    head = working(head);
-    temp1 = head;
-    
-    while(temp1!=NULL)
-    {
-        printf("%d at = %d bt = %d ct = %d tat = %d wt = %d rt = %d\n",temp1->pid,temp1->at,temp1->bt,temp1->ct,temp1->tat,temp1->wt,temp1->rt);
-        temp1 = temp1->next;
-    }
-    
-    temp = head;
-    int total = 0;
-    float avg_wt = 0;
-    float avg_tat = 0;
-    while(temp!=NULL)
-    {
-        avg_wt = avg_wt + temp->wt;
-        avg_tat = avg_tat + temp->tat;
-        total = total + 1;
-        temp = temp->next;
-    }
-    avg_wt = avg_wt/total;
-    avg_tat = avg_tat/total;
-    printf("Average turn around time is : %f\n",avg_wt);     // average turnaround time
-    printf("Average waiting time is : %f",avg_tat);         // average waiting time
-    
-    return 0;
+	return 0;
 }
+

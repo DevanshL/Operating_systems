@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-struct sjf {
+struct process {
     int id;
     int at;
     int bt;
@@ -13,27 +13,25 @@ struct sjf {
     int tat;
     int wt;
     int rt;
-};
-
-struct minheap {
-    struct sjf* process;
-    struct minheap* next;
+    struct process* next;
 };
 
 struct Queue {
-    struct minheap* front;
-    struct minheap* rear;
+    struct process* front;
+    struct process* rear;
 };
 
-struct minheap* createnode(struct sjf* process) {
-    struct minheap* node = (struct minheap*)malloc(sizeof(struct minheap));
-    node->process = process;
+struct process* createnode(int id, int at, int bt) {
+    struct process* node = (struct process*)malloc(sizeof(struct process));
+    node->id = id;
+    node->at = at;
+    node->bt = bt;
     node->next = NULL;
     return node;
 }
 
-void enqueue(struct Queue* queue, struct sjf* process) {
-    struct minheap* newnode = createnode(process);
+void enqueue(struct Queue* queue, int id, int at, int bt) {
+    struct process* newnode = createnode(id, at, bt);
     if (queue->rear == NULL) {
         queue->front = queue->rear = newnode;
     } else {
@@ -42,22 +40,20 @@ void enqueue(struct Queue* queue, struct sjf* process) {
     }
 }
 
-struct sjf* dequeue(struct Queue* queue) {
+struct process* dequeue(struct Queue* queue) {
     if (queue->front == NULL) {
         return NULL;
     } else {
-        struct minheap* temp = queue->front;
+        struct process* temp = queue->front;
         queue->front = queue->front->next;
         if (queue->front == NULL) {
             queue->rear = NULL;
         }
-        struct sjf* process = temp->process;
-        free(temp);
-        return process;
+        return temp;
     }
 }
 
-void shortestJobFirst(struct sjf* processes, int n) {
+void shortestJobFirst(struct process* processes, int n) {
     struct Queue queue;
     queue.front = queue.rear = NULL;
 
@@ -71,7 +67,7 @@ void shortestJobFirst(struct sjf* processes, int n) {
     printf(" pid      AT     BT    CT   TAT    WT    RT\n");
     for (; completed_processes < n;) {
         while (i < n && processes[i].at <= curr_time) {
-            enqueue(&queue, &processes[i]);
+            enqueue(&queue, processes[i].id, processes[i].at, processes[i].bt);
             i++;
         }
 
@@ -80,7 +76,7 @@ void shortestJobFirst(struct sjf* processes, int n) {
             continue;
         }
 
-        struct sjf* curr = dequeue(&queue);
+        struct process* curr = dequeue(&queue);
 
         curr->ct = curr_time + curr->bt;
         curr->tat = curr->ct - curr->at;
@@ -109,7 +105,7 @@ int main() {
     printf("Enter the number of processes: ");
     scanf("%d", &n);
 
-    struct sjf* processes = (struct sjf*)malloc(n * sizeof(struct sjf));
+    struct process* processes = (struct process*)malloc(n * sizeof(struct process));
 
     for (int i = 0; i < n; i++) {
         int pid, at, bt;

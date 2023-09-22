@@ -1,144 +1,120 @@
+// L DEVANSH CS21B2023
+
 #include <stdio.h>
 #include <stdlib.h>
 
-struct priority {
+struct Process {
     int id;
     int at;
-    int pr;
+    int priority;
     int bt;
     int rt;
+    struct Process* next;
 };
 
 struct Queue {
-    int front, rear;
-    int capacity;
-    struct priority** array;
+    struct Process* front;
 };
 
-struct priority* createProcess(int id, int at, int priority, int bt) {
-    struct priority* process = (struct priority*)malloc(sizeof(struct priority));
+struct Process* createProcess(int id, int at, int priority, int bt) {
+    struct Process* process = (struct Process*)malloc(sizeof(struct Process));
     process->id = id;
     process->at = at;
-    process->pr = priority;
+    process->priority = priority;
     process->bt = bt;
     process->rt = bt;
+    process->next = NULL;
     return process;
 }
 
-struct Queue* createQueue(int capacity) {
-    struct Queue* queue = (struct Queue*)malloc(sizeof(struct Queue));
-    queue->capacity = capacity;
-    queue->front = queue->rear = -1;
-    queue->array = (struct priority**)malloc(capacity * sizeof(struct priority*));
-    return queue;
-}
-
-int isEmpty(struct Queue* queue) {
-    return queue->front == -1;
-}
-
-void enqueue(struct Queue* queue, struct priority* process) {
-    if (queue->rear == queue->capacity - 1) {
-        return;
+void enqueue(struct Queue* queue, struct Process* process) {
+    if (queue->front == NULL || process->priority < queue->front->priority) {
+        process->next = queue->front;
+        queue->front = process;
+    } else {
+        struct Process* temp = queue->front;
+        while (temp->next != NULL && temp->next->priority <= process->priority) {
+            temp = temp->next;
+        }
+        process->next = temp->next;
+        temp->next = process;
     }
-    if (queue->front == -1)
-        queue->front = 0;
-    queue->array[++queue->rear] = process;
 }
 
-struct priority* dequeue(struct Queue* queue) {
-    if (isEmpty(queue))
+struct Process* dequeue(struct Queue* queue) {
+    if (queue->front == NULL) {
         return NULL;
-    struct priority* process = queue->array[queue->front++];
-    if (queue->front > queue->rear)
-        queue->front = queue->rear = -1;
-    return process;
+    }
+    struct Process* frontProcess = queue->front;
+    queue->front = queue->front->next;
+    return frontProcess;
 }
 
 int main() {
     int n;
-    printf("Enter number of processes: ");
+    printf("Enter the number of processes: ");
     scanf("%d", &n);
 
-    int p_id[100];
-    int arrival_time[100];
-    int priority[100];
-    int burst_time[100];
-    
+    struct Queue* processQueue = (struct Queue*)malloc(sizeof(struct Queue));
+    processQueue->front = NULL;
+
+    struct Process* processes[n];
+
     for (int i = 0; i < n; i++) {
-        printf("Enter p_id %d : ", i + 1);
-        scanf("%d", &p_id[i]);
-        printf("Enter arrival_time %d : ", i + 1);
-        scanf("%d", &arrival_time[i]);
-        printf("Enter priority %d : ", i + 1);
-        scanf("%d", &priority[i]);
-        printf("Enter burst_time %d : ", i + 1);
-        scanf("%d", &burst_time[i]);
+        int id, at, priority, bt;
+        printf("Enter Process ID for process %d: ", i + 1);
+        scanf("%d", &id);
+        printf("Enter Arrival Time for process %d: ", i + 1);
+        scanf("%d", &at);
+        printf("Enter Priority for process %d: ", i + 1);
+        scanf("%d", &priority);
+        printf("Enter Burst Time for process %d: ", i + 1);
+        scanf("%d", &bt);
+
+        processes[i] = createProcess(id, at, priority, bt);
     }
-
-    struct priority* processes[n];
-
-    for (int i = 0; i < n; ++i) {
-        processes[i] = createProcess(p_id[i], arrival_time[i], priority[i], burst_time[i]);
-    }
-
-    struct Queue* processQueue = createQueue(n);
 
     int currentTime = 0;
     int completedProcesses = 0;
-    int total_tat = 0;
-    int total_wt = 0;
-    int total_rt = 0;
+    int totalTAT = 0;
+    int totalWT = 0;
 
     while (completedProcesses < n) {
-        int selectedProcess = -1;
-
-        for (int i = 0; i < n; ++i) {
-            if (processes[i]->at <= currentTime && processes[i]->rt > 0) {
-                if (selectedProcess == -1 || processes[i]->pr < processes[selectedProcess]->pr) {
-                    selectedProcess = i;
-                }
-            }
+        while (completedProcesses < n && processes[completedProcesses]->at <= currentTime) {
+            enqueue(processQueue, processes[completedProcesses]);
+            completedProcesses++;
         }
 
-        if (selectedProcess == -1) {
+        if (processQueue->front == NULL) {
             currentTime++;
         } else {
-            struct priority* currentProcess = processes[selectedProcess];
+            struct Process* currentProcess = dequeue(processQueue);
             currentProcess->rt--;
-            currentTime++;
-
-            if (currentProcess->rt == currentProcess->bt - 1) {
-                total_rt += currentTime - currentProcess->at;
-            }
 
             if (currentProcess->rt == 0) {
-                completedProcesses++;
-                total_tat += currentTime - currentProcess->at;
-                total_wt += currentTime - currentProcess->at - currentProcess->bt;
-                printf("Process %d: Completion Time: %d, Turnaround Time: %d, Waiting Time: %d, Response Time: %d\n",
-                       currentProcess->id, currentTime,
-                       currentTime - currentProcess->at,
-                       currentTime - currentProcess->at - currentProcess->bt,
-                       currentTime - currentProcess->at - currentProcess->bt);
-            } else {
-                enqueue(processQueue, currentProcess);
+                int turnaroundTime = currentTime - currentProcess->at + 1;
+                int waitingTime = turnaroundTime - currentProcess->bt;
+                totalTAT += turnaroundTime;
+                totalWT += waitingTime;
+
+                printf("Process %d: Completion Time: %d, Turnaround Time: %d, Waiting Time: %d\n",
+                       currentProcess->id, currentTime, turnaroundTime, waitingTime);
             }
+
+            currentTime++;
+            enqueue(processQueue, currentProcess);
         }
     }
 
-    double avg_tat = (double)total_tat / n;
-    double avg_wt = (double)total_wt / n;
-    double avg_rt = (double)total_rt / n;
+    double avgTAT = (double)totalTAT / n;
+    double avgWT = (double)totalWT / n;
 
-    printf("Average Turnaround Time: %.2f\n", avg_tat);
-    printf("Average Waiting Time: %.2f\n", avg_wt);
-    printf("Average Response Time: %.2f\n", avg_rt);
+    printf("Average Turnaround Time: %.2f\n", avgTAT);
+    printf("Average Waiting Time: %.2f\n", avgWT);
 
     for (int i = 0; i < n; ++i) {
         free(processes[i]);
     }
-    free(processQueue->array);
     free(processQueue);
 
     return 0;

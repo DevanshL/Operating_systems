@@ -17,13 +17,12 @@ int main() {
     }
    
     else if (pid1 == 0)
-    {                                            // Child 1 process
-        printf("Child 1 My id is %d and my parent id is %d\n", getpid(), getppid());
+    {                                            // Child 1
+        printf("Child 1: My id is %d and my parent id is %d\n", getpid(), getppid());
     }
     else
     {
-       
-        wait(NULL);                                     // Wait for child 1 to complete
+        wait(NULL); // Wait for child 1 to complete
        
         pid2 = fork();
        
@@ -34,10 +33,13 @@ int main() {
         }
        
         else if (pid2 == 0)
-        {                                                       // Child 2 process
-            wait(NULL);
-            printf("Child 2 My id is %d and my parent id is %d\n", getpid(), getppid());
-           
+        {                                                       // Child 2
+            printf("Child 2: My id is %d and my parent id is %d\n", getpid(), getppid());
+        }
+         
+         else
+         {
+            wait(NULL); // Wait for child 2 to complete
             pid3 = fork();
            
             if (pid3 == -1)
@@ -47,12 +49,12 @@ int main() {
             }
             else if (pid3 == 0)
             {
-                                                    // Child 3 process
-                printf("Child 3 My id is %d and my parent id is %d\n", getpid(), getppid());
+                                                    // Child 3
+                printf("Child 3: My id is %d and my parent id is %d\n", getpid(), getppid());
             }
             else
             {
-                wait(NULL);                     // Wait for child 3 to complete
+                wait(NULL); // Wait for child 3 to complete
                
                 pid4 = fork();
                
@@ -63,21 +65,18 @@ int main() {
                 }
                 else if (pid4 == 0)
                 {
-                                                     // Child 4 process
-                    printf("Child 4 My id is %d and my parent id is %d\n", getpid(), getppid());
+                                                     // Child 4
+                    printf("Child 4: My id is %d and my parent id is %d\n", getpid(), getppid());
                 }
                 else
                 {
-                    wait(NULL);                          // Wait for child 4 to complete
+                    wait(NULL); // Wait for child 4 to complete
                 }
             }
         }
-        else
-        {
-            wait(NULL); // Wait for child 2 to complete
-            wait(NULL);
-            printf("Parent Process my id is %d and my parent id is %d\n", getpid(), getppid());
-        }
+        
+        // The parent process will wait for all child processes to complete
+        printf("Parent Process: My id is %d and my parent id is %d\n", getpid(), getppid());
     }
    
     return 0;

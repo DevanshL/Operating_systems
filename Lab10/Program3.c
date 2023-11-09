@@ -3,56 +3,49 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include<semaphore.h>
+#include <semaphore.h>
+#include <stdint.h> // Include this for intptr_t
 
-sem_t rd,wrt;              //defining semaphores
-int rcount=0;             //read count
+sem_t rd, wrt;
+int rcount = 0;
 
 void *reader(void *param);
 void *writer(void *param);
 
+int main() {
+    pthread_t tid[6];
+    int i;
 
-int main(){
-    pthread_t tid[5];
-    long int i;
-    sem_init(&rd,0,1);
-    sem_init(&wrt,0,1);
-    pthread_create(&tid[0], NULL, &writer, (void*)1);                         //creating 1 writer process
-    
-    for(i=0;i<5;i++)
-    {
-        pthread_create(&tid[i], NULL, &reader, (void*)i);                         //creating 5 reader process
+    sem_init(&rd, 0, 1);
+    sem_init(&wrt, 0, 1);
+
+    pthread_create(&tid[0], NULL, writer, (void *)(intptr_t)1); // Create the writer thread with ID 1
+
+    for (i = 1; i < 6; i++) {
+        pthread_create(&tid[i], NULL, reader, (void *)(intptr_t)i); // Create 5 reader threads
     }
-    for (i = 0; i < 5; i++)
-    {
+
+    for (i = 0; i < 6; i++) {
         pthread_join(tid[i], NULL);
     }
+
     return 0;
 }
 
-
-
-void *reader(void *param)                     //reader process
-{ 
+void *reader(void *param) {
     int i;
-     int id=(long int)param;
-    for(i=0;i<10;i++)
-    {
+    int id = (int)(intptr_t)param;
+    for (i = 0; i < 10; i++) {
         sem_wait(&rd);
         rcount++;
-        if(rcount==1)
-        {
-            sem_wait(&wrt);                                 
+        if (rcount == 1) {
+            sem_wait(&wrt);
         }
         sem_post(&rd);
-        printf("Reader %d is reading\n",id);
+        printf("Reader %d is reading\n", id);
         sem_wait(&rd);
         rcount--;
-        if(rcount==0)
-        {
+        if (rcount == 0) {
             sem_post(&wrt);
         }
         sem_post(&rd);
@@ -60,14 +53,12 @@ void *reader(void *param)                     //reader process
     pthread_exit(0);
 }
 
-void *writer(void *param)                       //writer process
-{
+void *writer(void *param) {
     int i;
-    int id=(long int)param;
-    for(i=0;i<10;i++)
-    {
+    int id = (int)(intptr_t)param;
+    for (i = 0; i < 10; i++) {
         sem_wait(&wrt);
-        printf("Writer %d is writing\n",id);
+        printf("Writer %d is writing\n", id);
         sem_post(&wrt);
     }
     pthread_exit(0);
